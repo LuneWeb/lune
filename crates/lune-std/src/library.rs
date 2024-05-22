@@ -17,7 +17,7 @@ pub enum LuneStandardLibrary {
 
 impl LuneStandardLibrary {
     #[rustfmt::skip]
-    const ALL: &'static [Self] = &[
+    pub const ALL: &'static [Self] = &[
         #[cfg(feature = "fs")]      Self::Fs,
         #[cfg(feature = "luau")]    Self::Luau,
         #[cfg(feature = "net")]     Self::Net,
