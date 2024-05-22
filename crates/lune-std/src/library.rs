@@ -4,6 +4,7 @@ use mlua::prelude::*;
 #[derive(Clone, Copy)]
 #[rustfmt::skip]
 pub enum LuneStandardLibrary {
+    #[cfg(feature = "datetime")]Datetime,
     #[cfg(feature = "fs")]      Fs,
     #[cfg(feature = "luau")]    Luau,
     #[cfg(feature = "net")]     Net,
@@ -18,6 +19,7 @@ pub enum LuneStandardLibrary {
 impl LuneStandardLibrary {
     #[rustfmt::skip]
     pub const ALL: &'static [Self] = &[
+        #[cfg(feature = "datetime")]Self::Datetime,
         #[cfg(feature = "fs")]      Self::Fs,
         #[cfg(feature = "luau")]    Self::Luau,
         #[cfg(feature = "net")]     Self::Net,
@@ -36,6 +38,7 @@ impl LuneStandardLibrary {
         use LuneStandardLibrary::*;
 
         match self {
+            #[cfg(feature = "datetime")]Datetime=> "datetime",
             #[cfg(feature = "fs")]      Fs      => "fs",
             #[cfg(feature = "luau")]    Luau    => "luau",
             #[cfg(feature = "net")]     Net     => "net",
@@ -55,6 +58,7 @@ impl LuneStandardLibrary {
         use LuneStandardLibrary::*;
 
         match self {
+            #[cfg(feature = "datetime")]Datetime=> LuneModuleCreator::LuaTable(lune_std_datetime::module),
             #[cfg(feature = "fs")]      Fs      => LuneModuleCreator::LuaTable(lune_std_fs::module),
             #[cfg(feature = "luau")]    Luau    => LuneModuleCreator::LuaTable(lune_std_luau::module),
             #[cfg(feature = "net")]     Net     => LuneModuleCreator::LuaTable(lune_std_net::module),
@@ -68,6 +72,7 @@ impl LuneStandardLibrary {
     }
 }
 
+#[allow(clippy::missing_errors_doc)]
 pub fn inject_lune_standard_libraries(
     context_builder: &mut GlobalsContextBuilder,
 ) -> LuaResult<()> {
