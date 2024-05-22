@@ -7,7 +7,7 @@ use mlua::prelude::*;
 pub mod context;
 mod global;
 mod globals;
-mod library;
+pub mod library;
 mod luaurc;
 
 pub use self::global::LuneStandardGlobal;
