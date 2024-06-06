@@ -30,6 +30,10 @@ Write and run programs, similar to runtimes for other languages such as [Node](h
 
 Lune provides fully asynchronous APIs wherever possible, and is built in Rust 🦀 for speed, safety and correctness.
 
+## This fork
+
+This fork is supposed to make lune more customizable as a cargo crate, so it can be used in other projects such as LuneWeb
+
 ## Features
 
 - 🌙 Strictly minimal but powerful interface that is easy to read and remember, just like Luau itself
