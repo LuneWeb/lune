@@ -76,7 +76,6 @@ impl LuneStandardLibrary {
 pub fn inject_lune_standard_libraries(
     context_builder: &mut GlobalsContextBuilder,
 ) -> LuaResult<()> {
-    println!("{:?}", LuneStandardLibrary::ALL);
     context_builder.with_alias("lune", |modules| {
         for x in LuneStandardLibrary::ALL {
             modules.insert(x.name(), x.module_creator());
