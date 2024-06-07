@@ -285,13 +285,13 @@ impl RequireContext {
             };
         };
 
-        let library = lua_alias.children.get(module.as_ref()).unwrap_or_else(|| {
-            panic!(
-                "Library with the name of @{}/{} was not found",
+        let Some(library) = lua_alias.children.get(module.as_ref()) else {
+            return Err(LuaError::RuntimeError(format!(
+                "Couldn't find any library called @{}/{}",
                 alias.as_ref(),
                 module.as_ref()
-            )
-        });
+            )));
+        };
 
         let result = library.clone().into_lua(lua)?;
 
