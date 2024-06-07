@@ -1,6 +1,8 @@
 #![allow(clippy::missing_panics_doc)]
 
 use std::{
+    borrow::Cow,
+    env::current_dir,
     process::ExitCode,
     rc::Rc,
     sync::{
@@ -9,6 +11,7 @@ use std::{
     },
 };
 
+use lune_std::context::{GlobalsContextBuilder, LuneModuleCreator};
 use mlua::prelude::*;
 use mlua_luau_scheduler::{Functions, Scheduler};
 use self_cell::self_cell;
@@ -44,43 +47,39 @@ impl RuntimeInner {
             co.set("wrap", fns.wrap.clone())?;
 
             // Inject all the globals that are enabled
-            #[cfg(any(
-                feature = "std-datetime",
-                feature = "std-fs",
-                feature = "std-luau",
-                feature = "std-net",
-                feature = "std-process",
-                feature = "std-regex",
-                feature = "std-roblox",
-                feature = "std-serde",
-                feature = "std-stdio",
-                feature = "std-task",
-            ))]
+            let mut globals_ctx_builder = GlobalsContextBuilder::new();
+            lune_std::inject_libraries(&mut globals_ctx_builder)?;
+
+            #[cfg(test)]
             {
-                lune_std::inject_globals(lua)?;
+                globals_ctx_builder.with_alias("custom", |modules| {
+                    modules.insert(
+                        "number",
+                        LuneModuleCreator::LuaValue(|_| Ok(LuaValue::Number(6009.0))),
+                    );
+
+                    Ok(())
+                })?;
+
+                globals_ctx_builder.with_script(
+                    current_dir()
+                        .unwrap()
+                        .join("tests/globals_ctx/tests/fake_script"),
+                    Cow::from("return 2000".as_bytes()),
+                );
             }
+
+            let globals_ctx = globals_ctx_builder.build();
+            lune_std::inject_globals(lua, &globals_ctx)?;
 
             // Sandbox the Luau VM and make it go zooooooooom
             lua.sandbox(true)?;
 
             // _G table needs to be injected again after sandboxing,
             // otherwise it will be read-only and completely unusable
-            #[cfg(any(
-                feature = "std-datetime",
-                feature = "std-fs",
-                feature = "std-luau",
-                feature = "std-net",
-                feature = "std-process",
-                feature = "std-regex",
-                feature = "std-roblox",
-                feature = "std-serde",
-                feature = "std-stdio",
-                feature = "std-task",
-            ))]
-            {
-                let g_table = lune_std::LuneStandardGlobal::GTable;
-                lua.globals().set(g_table.name(), g_table.create(lua)?)?;
-            }
+            let g_table = lune_std::LuneStandardGlobal::GTable;
+            lua.globals()
+                .set(g_table.name(), g_table.create(lua, &globals_ctx)?)?;
 
             Ok(sched)
         })

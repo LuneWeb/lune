@@ -1,5 +1,5 @@
 use mlua::prelude::*;
-use std::collections::HashMap;
+use std::{borrow::Cow, collections::HashMap, path::PathBuf};
 
 /**
     Will only insert the item into the hashmap if the provided feature flag is enabled
@@ -86,7 +86,8 @@ pub struct LuneModule {
 */
 #[derive(Default, Clone, Debug)]
 pub struct GlobalsContext {
-    pub(crate) modules: Vec<LuneModule>,
+    pub modules: Vec<LuneModule>,
+    pub scripts: HashMap<PathBuf, Cow<'static, [u8]>>,
 }
 
 impl GlobalsContext {
@@ -119,6 +120,7 @@ impl GlobalsContext {
 #[derive(Default)]
 pub struct GlobalsContextBuilder {
     modules: Vec<LuneModule>,
+    scripts: HashMap<PathBuf, Cow<'static, [u8]>>,
 }
 
 impl GlobalsContextBuilder {
@@ -175,10 +177,41 @@ impl GlobalsContextBuilder {
         Ok(())
     }
 
+    /**
+        Define path for custom scripts that can be required
+
+        # Example
+        ```
+        let script = fs.read("path/to/script.luau").unwrap();
+
+        builder.with_alias("<alias>", |modules| {
+            // There are multiple ways of inserting a module
+
+            // .1
+            modules.insert("pixels", LuneModuleCreator::LuaTable(create_pixels));
+
+            // .2
+            // does the exact same thing as .1
+            insert_module!(modules, "pixels", LuneModuleCreator::LuaTable(create_pixels));
+
+            // .3
+            // does the exact same thing as .1
+            // but only if a feature flag with the name of "pixels" is enabled
+            insert_feature_only_module!(modules, "pixels", LuneModuleCreator::LuaTable(create_pixels));
+
+            Ok(())
+        })?;
+        ```
+    */
+    pub fn with_script(&mut self, path: impl Into<PathBuf>, content: Cow<'static, [u8]>) {
+        self.scripts.insert(path.into(), content);
+    }
+
     #[must_use]
     pub fn build(self) -> GlobalsContext {
         GlobalsContext {
             modules: self.modules,
+            scripts: self.scripts,
         }
     }
 }

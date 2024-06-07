@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     collections::HashMap,
     path::{Path, PathBuf},
     sync::Arc,
@@ -157,13 +158,21 @@ impl RequireContext {
         lua: &'lua Lua,
         abs_path: impl AsRef<Path>,
         rel_path: impl AsRef<Path>,
+        content: Option<&'lua Cow<'lua, [u8]>>,
     ) -> LuaResult<LuaRegistryKey> {
         let abs_path = abs_path.as_ref();
         let rel_path = rel_path.as_ref();
 
         // Read the file at the given path, try to parse and
         // load it into a new lua thread that we can schedule
-        let file_contents = read(&abs_path).await?;
+        let file_contents = {
+            if let Some(content) = content {
+                content.to_vec()
+            } else {
+                read(&abs_path).await?
+            }
+        };
+
         let file_thread = lua
             .load(file_contents)
             .set_name(rel_path.to_string_lossy().to_string());
@@ -190,11 +199,12 @@ impl RequireContext {
     /**
         Loads (requires) the file at the given path.
     */
-    pub async fn load_with_caching<'lua>(
+    pub async fn load_with_caching<'lua, 'ctx>(
         &self,
         lua: &'lua Lua,
         abs_path: impl AsRef<Path>,
         rel_path: impl AsRef<Path>,
+        content: Option<&'ctx Cow<'ctx, [u8]>>,
     ) -> LuaResult<LuaMultiValue<'lua>> {
         let abs_path = abs_path.as_ref();
         let rel_path = rel_path.as_ref();
@@ -207,7 +217,7 @@ impl RequireContext {
             .insert(abs_path.to_path_buf(), broadcast_tx);
 
         // Try to load at this abs path
-        let load_res = self.load(lua, abs_path, rel_path).await;
+        let load_res = self.load(lua, abs_path, rel_path, content).await;
         let load_val = match &load_res {
             Err(e) => Err(e.clone()),
             Ok(k) => {
@@ -249,7 +259,13 @@ impl RequireContext {
         alias: impl AsRef<str>,
         module: impl AsRef<str>,
     ) -> LuaResult<LuaMultiValue<'lua>> {
-        let lua_alias = self.global_context.get_alias(alias.as_ref()).unwrap();
+        let Some(lua_alias) = self.global_context.get_alias(alias.as_ref()) else {
+            return Err(LuaError::RuntimeError(format!(
+                "Alias with the name of '{}' doesn't exist",
+                alias.as_ref()
+            )));
+        };
+
         let cache_name = alias.as_ref().to_owned() + module.as_ref();
 
         let mut cache = self

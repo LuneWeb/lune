@@ -27,6 +27,19 @@ pub(super) async fn require_abs_rel<'lua, 'ctx>(
 where
     'lua: 'ctx,
 {
+    // 0. Try to require from GlobalsContext.scripts
+    if let Some(content) = ctx.global_context.scripts.get(&abs_path) {
+        if ctx.is_cached(&abs_path)? {
+            return ctx.get_from_cache(lua, abs_path);
+        } else if ctx.is_pending(&abs_path)? {
+            return ctx.wait_for_cache(lua, abs_path).await;
+        }
+
+        return ctx
+            .load_with_caching(lua, abs_path, rel_path, Some(content))
+            .await;
+    }
+
     // 1. Try to require the exact path
     match require_inner(lua, ctx, &abs_path, &rel_path).await {
         Ok(res) => return Ok(res),
@@ -106,7 +119,7 @@ where
     } else if ctx.is_pending(abs_path)? {
         ctx.wait_for_cache(lua, &abs_path).await
     } else {
-        ctx.load_with_caching(lua, &abs_path, &rel_path).await
+        ctx.load_with_caching(lua, &abs_path, &rel_path, None).await
     }
 }
 

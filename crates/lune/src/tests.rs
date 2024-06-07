@@ -48,6 +48,12 @@ macro_rules! create_tests {
     )* }
 }
 
+// Tests for GlobalsContext
+create_tests! {
+    globals_ctx_custom_alias: "globals_ctx/tests/custom_alias",
+    globals_ctx_custom_path: "globals_ctx/tests/custom_path",
+}
+
 #[cfg(any(
     feature = "std-datetime",
     feature = "std-fs",
