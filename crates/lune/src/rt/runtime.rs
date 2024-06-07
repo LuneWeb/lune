@@ -1,8 +1,6 @@
 #![allow(clippy::missing_panics_doc)]
 
 use std::{
-    borrow::Cow,
-    env::current_dir,
     process::ExitCode,
     rc::Rc,
     sync::{
@@ -11,7 +9,7 @@ use std::{
     },
 };
 
-use lune_std::context::{GlobalsContextBuilder, LuneModuleCreator};
+use lune_std::context::GlobalsContextBuilder;
 use mlua::prelude::*;
 use mlua_luau_scheduler::{Functions, Scheduler};
 use self_cell::self_cell;
@@ -52,6 +50,9 @@ impl RuntimeInner {
 
             #[cfg(test)]
             {
+                use lune_std::context::LuneModuleCreator;
+                use std::{borrow::Cow, env::current_dir};
+
                 globals_ctx_builder.with_alias("custom", |modules| {
                     modules.insert(
                         "number",

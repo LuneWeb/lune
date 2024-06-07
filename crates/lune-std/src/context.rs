@@ -178,29 +178,26 @@ impl GlobalsContextBuilder {
     }
 
     /**
-        Define path for custom scripts that can be required
+        Define an absolute path for custom requires
 
         # Example
         ```
-        let script = fs.read("path/to/script.luau").unwrap();
+        let script = "return 100";
 
-        builder.with_alias("<alias>", |modules| {
-            // There are multiple ways of inserting a module
+        globals_ctx_builder.with_script(
+            current_dir()
+                .unwrap()
+                .join("path/to/script"),
+            Cow::from(script.as_bytes()),
+        );
 
-            // .1
-            modules.insert("pixels", LuneModuleCreator::LuaTable(create_pixels));
+        /*
 
-            // .2
-            // does the exact same thing as .1
-            insert_module!(modules, "pixels", LuneModuleCreator::LuaTable(create_pixels));
+        -- lua code
+        local number = require("path/to/script")
+        print(number) -- 100
 
-            // .3
-            // does the exact same thing as .1
-            // but only if a feature flag with the name of "pixels" is enabled
-            insert_feature_only_module!(modules, "pixels", LuneModuleCreator::LuaTable(create_pixels));
-
-            Ok(())
-        })?;
+         */
         ```
     */
     pub fn with_script(&mut self, path: impl Into<PathBuf>, content: Cow<'static, [u8]>) {
