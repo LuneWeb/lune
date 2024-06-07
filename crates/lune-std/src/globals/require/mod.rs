@@ -81,20 +81,15 @@ async fn require<'lua>(
         .app_data_ref()
         .expect("Failed to get RequireContext from app data");
 
-    let alias = if path.starts_with('@') {
-        let tokens = path.trim_start_matches('@').split_once('/').unwrap();
-        Some(tokens)
-    } else {
-        None
-    };
-
-    if let Some(alias) = alias {
-        library::require(lua, &context, alias.0, alias.1)
-    } else if let Some(aliased_path) = path.strip_prefix('@') {
+    if let Some(aliased_path) = path.strip_prefix('@') {
         let (alias, path) = aliased_path.split_once('/').ok_or(LuaError::runtime(
             "Require with custom alias must contain '/' delimiter",
         ))?;
-        alias::require(lua, &context, &source, alias, path).await
+
+        match library::require(lua, &context, alias, path) {
+            Ok(lib) => Ok(lib),
+            Err(_) => alias::require(lua, &context, &source, alias, path).await,
+        }
     } else {
         path::require(lua, &context, &source, &path).await
     }
