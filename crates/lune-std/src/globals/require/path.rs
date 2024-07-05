@@ -28,18 +28,7 @@ where
     'lua: 'ctx,
 {
     // 0. Try to require from GlobalsContext.scripts
-    let script = ctx
-        .global_context
-        .scripts
-        .get(&abs_path)
-        .or(ctx
-            .global_context
-            .scripts
-            .get(&abs_path.with_extension("luau")))
-        .or(ctx
-            .global_context
-            .scripts
-            .get(&abs_path.with_extension("lua")));
+    let script = ctx.global_context.get_script(&abs_path);
 
     if let Some(content) = script {
         if ctx.is_cached(&abs_path)? {

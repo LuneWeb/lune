@@ -1,5 +1,9 @@
 use mlua::prelude::*;
-use std::{borrow::Cow, collections::HashMap, path::PathBuf};
+use std::{
+    borrow::Cow,
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 /**
     Will only insert the item into the hashmap if the provided feature flag is enabled
@@ -94,6 +98,16 @@ impl GlobalsContext {
     #[must_use]
     pub fn get_alias(&self, s: &str) -> Option<&LuneModule> {
         self.modules.iter().find(|x| x.alias == s)
+    }
+
+    #[must_use]
+    pub fn get_script<T: Into<PathBuf>>(&self, abs_path: T) -> Option<&Cow<'static, [u8]>> {
+        let abs_path = abs_path.into();
+
+        self.scripts
+            .get(&abs_path)
+            .or(self.scripts.get(&abs_path.with_extension("luau")))
+            .or(self.scripts.get(&abs_path.with_extension("lua")))
     }
 }
 
