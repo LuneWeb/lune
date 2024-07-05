@@ -62,8 +62,6 @@ impl Metadata {
         let bytes = postcard::to_slice(&Self { scripts }, &mut buffer).unwrap();
         patched_bin.extend_from_slice(bytes);
 
-        println!("-> : {}", bytes.len());
-
         // Append the length of metadata to the end
         let mut buffer = [0u8; 8];
         let length_as_bytes = postcard::to_slice(&bytes.len(), &mut buffer).unwrap();
