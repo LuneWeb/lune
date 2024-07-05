@@ -19,8 +19,13 @@ async fn main() -> ExitCode {
         .with_level(true)
         .init();
 
-    if let Some(bin) = standalone::check().await {
-        return standalone::run(bin).await.unwrap();
+    match standalone::check().await {
+        Ok(opt) => {
+            if let Some(meta) = opt {
+                return standalone::run(meta).await.unwrap();
+            }
+        }
+        Err(err) => panic!("{err}"),
     }
 
     #[cfg(feature = "cli")]

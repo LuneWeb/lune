@@ -3,9 +3,10 @@ use std::{path::PathBuf, process::ExitCode};
 use anyhow::{bail, Context, Result};
 use clap::Parser;
 use console::style;
+use mlua::Compiler;
 use tokio::fs;
 
-use crate::standalone::metadata::Metadata;
+use crate::standalone::metadata::{LuauScript, Metadata};
 
 mod base_exe;
 mod files;
@@ -20,7 +21,7 @@ use self::target::BuildTarget;
 #[derive(Debug, Clone, Parser)]
 pub struct BuildCommand {
     /// The path to the input file
-    pub input: PathBuf,
+    pub inputs: Vec<PathBuf>,
 
     /// The path to the output file - defaults to the
     /// input file path with an executable extension
@@ -43,21 +44,30 @@ impl BuildCommand {
         let output_path = self
             .output
             .clone()
-            .unwrap_or_else(|| remove_source_file_ext(&self.input));
+            .unwrap_or_else(|| remove_source_file_ext(&self.inputs[0]));
         let output_path = output_path.with_extension(target.exe_extension());
-        if output_path == self.input {
+        if output_path == self.inputs[0] {
             if self.output.is_some() {
                 bail!("output path cannot be the same as input path");
             }
             bail!("output path cannot be the same as input path, please specify a different output path");
         }
 
+        let mut scripts = vec![];
+        let compiler = Compiler::new()
+            .set_optimization_level(2)
+            .set_coverage_level(0)
+            .set_debug_level(1);
+
         // Try to read the given input file
         // FUTURE: We should try and resolve a full require file graph using the input
         // path here instead, see the notes in the `standalone` module for more details
-        let source_code = fs::read(&self.input)
-            .await
-            .context("failed to read input file")?;
+        for input in &self.inputs {
+            let source_code = fs::read(input).await.context("failed to read input file")?;
+            let bytecode = compiler.compile(source_code);
+
+            scripts.push(LuauScript(input.to_string_lossy().to_string(), bytecode));
+        }
 
         // Derive the base executable path based on the arguments provided
         let base_exe_path = get_or_download_base_executable(target).await?;
@@ -65,9 +75,9 @@ impl BuildCommand {
         // Read the contents of the lune interpreter as our starting point
         println!(
             "Compiling standalone binary from {}",
-            style(self.input.display()).green()
+            style(self.inputs[0].display()).green()
         );
-        let patched_bin = Metadata::create_env_patched_bin(base_exe_path, source_code)
+        let patched_bin = Metadata::create_env_patched_bin(base_exe_path, scripts)
             .await
             .context("failed to create patched binary")?;
 

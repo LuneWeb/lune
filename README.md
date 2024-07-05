@@ -1,6 +1,28 @@
 <!-- markdownlint-disable MD033 -->
 <!-- markdownlint-disable MD041 -->
 
+## Changes from this fork
+
+### CLI changes
+
+$ Build
+
+the `lune build` command can bundle multiple scripts
+
+```shell
+lune build path/to/script1.luau path/to/script2.luau path/to/scrpt3.luau
+```
+
+```shell
+lune build path/to/*.luau
+```
+
+### Internal changes
+
+$ GlobalsContext
+
+this struct allows you to customize the global variables that are inserted by the lune-std crate, for now these customizations are limited to adding your own standard libraries and modulescripts to the require function
+
 <img align="right" width="250" src="assets/logo/tilt_svg.svg" alt="Lune logo" />
 
 <h1 align="center">Lune</h1>
@@ -30,14 +52,10 @@ Write and run programs, similar to runtimes for other languages such as [Node](h
 
 Lune provides fully asynchronous APIs wherever possible, and is built in Rust 🦀 for speed, safety and correctness.
 
-## This fork
-
-This fork is supposed to make lune more customizable as a cargo crate, so it can be used in other projects such as LuneWeb
-
 ## Features
 
 - 🌙 Strictly minimal but powerful interface that is easy to read and remember, just like Luau itself
-- 🧰 Fully featured APIs for the filesystem, networking, stdio, all included in the small (~5mb) executable
+- 🧰 Fully featured APIs for the filesystem, networking, stdio, all included in the small (~5mb zipped) executable
 - 📚 World-class documentation, on the web _or_ directly in your editor, no network connection necessary
 - 🏡 Familiar runtime environment for Roblox developers, with an included 1-to-1 task scheduler port
 - ✏️ Optional built-in library for manipulating Roblox place & model files, and their instances

@@ -28,7 +28,9 @@ where
     'lua: 'ctx,
 {
     // 0. Try to require from GlobalsContext.scripts
-    if let Some(content) = ctx.global_context.scripts.get(&abs_path) {
+    let script = ctx.global_context.get_script(&abs_path);
+
+    if let Some(content) = script {
         if ctx.is_cached(&abs_path)? {
             return ctx.get_from_cache(lua, abs_path);
         } else if ctx.is_pending(&abs_path)? {
