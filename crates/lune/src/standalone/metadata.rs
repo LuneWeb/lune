@@ -1,13 +1,12 @@
 use std::{env, path::PathBuf};
 
 use anyhow::{bail, Result};
-use mlua::Compiler as LuaCompiler;
 use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
 use tokio::fs;
 
 pub static CURRENT_EXE: Lazy<PathBuf> =
     Lazy::new(|| env::current_exe().expect("failed to get current exe"));
-const MAGIC: &[u8; 8] = b"cr3sc3nt";
 
 /*
     TODO: Right now all we do is append the bytecode to the end
@@ -27,10 +26,13 @@ const MAGIC: &[u8; 8] = b"cr3sc3nt";
     Metadata for a standalone Lune executable. Can be used to
     discover and load the bytecode contained in a standalone binary.
 */
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Metadata {
-    pub bytecode: Vec<u8>,
+    pub scripts: Vec<LuauScript>,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct LuauScript(pub String, pub Vec<u8>);
 
 impl Metadata {
     /**
@@ -41,8 +43,10 @@ impl Metadata {
         let contents = fs::read(CURRENT_EXE.to_path_buf())
             .await
             .unwrap_or_default();
-        let is_standalone = contents.ends_with(MAGIC);
-        (is_standalone, contents)
+        let has_metadata =
+            postcard::from_bytes::<Metadata>(&contents[contents.len() - 999..contents.len()])
+                .is_ok();
+        (has_metadata, contents)
     }
 
     /**
@@ -50,21 +54,25 @@ impl Metadata {
     */
     pub async fn create_env_patched_bin(
         base_exe_path: PathBuf,
-        script_contents: impl Into<Vec<u8>>,
+        scripts: Vec<LuauScript>,
     ) -> Result<Vec<u8>> {
-        let compiler = LuaCompiler::new()
-            .set_optimization_level(2)
-            .set_coverage_level(0)
-            .set_debug_level(1);
-
         let mut patched_bin = fs::read(base_exe_path).await?;
 
-        // Compile luau input into bytecode
-        let bytecode = compiler.compile(script_contents.into());
+        // Append metadata to the end
+        let mut buffer = [0u8; 1 + 999];
 
-        // Append the bytecode / metadata to the end
-        let meta = Self { bytecode };
-        patched_bin.extend_from_slice(&meta.to_bytes());
+        let bytes = postcard::to_slice(&Self { scripts }, &mut buffer).unwrap();
+        patched_bin.extend_from_slice(bytes);
+
+        // println!("-> : {}", bytes.len());
+
+        // Append the length of metadata to the end
+        let mut buffer = [0u8; 2];
+        let length_as_bytes = postcard::to_slice(&bytes.len(), &mut buffer).unwrap();
+        patched_bin.extend_from_slice(length_as_bytes);
+
+        // println!("{length_as_bytes:?}");
+        // println!("{}", bytes.len());
 
         Ok(patched_bin)
     }
@@ -74,29 +82,16 @@ impl Metadata {
     */
     pub fn from_bytes(bytes: impl AsRef<[u8]>) -> Result<Self> {
         let bytes = bytes.as_ref();
-        if bytes.len() < 16 || !bytes.ends_with(MAGIC) {
+        let length = postcard::from_bytes::<usize>(&bytes[bytes.len() - 2..bytes.len()]).unwrap();
+
+        let bytes = &bytes[0..bytes.len() - 2];
+        let bytes = &bytes[bytes.len() - length..bytes.len()];
+        let metadata = postcard::from_bytes::<Metadata>(bytes);
+
+        if metadata.is_err() {
             bail!("not a standalone binary")
         }
 
-        // Extract bytecode size
-        let bytecode_size_bytes = &bytes[bytes.len() - 16..bytes.len() - 8];
-        let bytecode_size =
-            usize::try_from(u64::from_be_bytes(bytecode_size_bytes.try_into().unwrap()))?;
-
-        // Extract bytecode
-        let bytecode = bytes[bytes.len() - 16 - bytecode_size..].to_vec();
-
-        Ok(Self { bytecode })
-    }
-
-    /**
-        Writes the metadata chunk to a byte vector, to later bet read using `from_bytes`.
-    */
-    pub fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
-        bytes.extend_from_slice(&self.bytecode);
-        bytes.extend_from_slice(&(self.bytecode.len() as u64).to_be_bytes());
-        bytes.extend_from_slice(MAGIC);
-        bytes
+        Ok(metadata.unwrap())
     }
 }

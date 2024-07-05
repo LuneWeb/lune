@@ -41,7 +41,7 @@ impl RunCommand {
         };
 
         // Create a new lune object with all globals & run the script
-        let result = Runtime::new()
+        let result = Runtime::new(None)
             .with_args(self.script_args)
             .run(&script_display_name, strip_shebang(script_contents))
             .await;

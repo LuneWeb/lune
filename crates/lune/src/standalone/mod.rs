@@ -1,7 +1,11 @@
-use std::{env, process::ExitCode};
+use std::{
+    env::{self, current_dir},
+    process::ExitCode,
+};
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use lune::Runtime;
+use lune_std::context::GlobalsContextBuilder;
 
 pub(crate) mod metadata;
 pub(crate) mod tracer;
@@ -29,9 +33,25 @@ pub async fn run(patched_bin: impl AsRef<[u8]>) -> Result<ExitCode> {
     let args = env::args().skip(1).collect::<Vec<_>>();
     let meta = Metadata::from_bytes(patched_bin).expect("must be a standalone binary");
 
-    let result = Runtime::new()
+    let mut ctx_builder = GlobalsContextBuilder::new();
+    let cwd = current_dir().unwrap();
+
+    for script in &meta.scripts {
+        ctx_builder.with_script(cwd.join(script.0.clone()), script.1.clone().into());
+    }
+
+    if meta.scripts.is_empty() {
+        bail!("Metadata contains 0 bundled scripts")
+    }
+
+    let init = &meta.scripts[0];
+
+    let result = Runtime::new(Some(ctx_builder))
         .with_args(args)
-        .run("STANDALONE", meta.bytecode)
+        .run(
+            cwd.join(init.0.clone()).to_string_lossy().to_string(),
+            init.1.clone(),
+        )
         .await;
 
     Ok(match result {

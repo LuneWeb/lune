@@ -29,7 +29,7 @@ self_cell! {
 }
 
 impl RuntimeInner {
-    fn create() -> LuaResult<Self> {
+    fn create(mut ctx_builder: GlobalsContextBuilder) -> LuaResult<Self> {
         let lua = Rc::new(Lua::new());
 
         lua.set_app_data(Rc::downgrade(&lua));
@@ -45,15 +45,14 @@ impl RuntimeInner {
             co.set("wrap", fns.wrap.clone())?;
 
             // Inject all the globals that are enabled
-            let mut globals_ctx_builder = GlobalsContextBuilder::new();
-            lune_std::inject_libraries(&mut globals_ctx_builder)?;
+            lune_std::inject_libraries(&mut ctx_builder)?;
 
             #[cfg(test)]
             {
                 use lune_std::context::LuneModuleCreator;
                 use std::{borrow::Cow, env::current_dir};
 
-                globals_ctx_builder.with_alias("custom", |modules| {
+                ctx_builder.with_alias("custom", |modules| {
                     modules.insert(
                         "number",
                         LuneModuleCreator::LuaValue(|_| Ok(LuaValue::Number(6009.0))),
@@ -62,7 +61,7 @@ impl RuntimeInner {
                     Ok(())
                 })?;
 
-                globals_ctx_builder.with_script(
+                ctx_builder.with_script(
                     current_dir()
                         .unwrap()
                         .join("tests/globals_ctx/tests/fake_script"),
@@ -70,7 +69,7 @@ impl RuntimeInner {
                 );
             }
 
-            let globals_ctx = globals_ctx_builder.build();
+            let globals_ctx = ctx_builder.build();
             lune_std::inject_globals(lua, &globals_ctx)?;
 
             // Sandbox the Luau VM and make it go zooooooooom
@@ -110,9 +109,10 @@ impl Runtime {
     */
     #[must_use]
     #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
+    pub fn new(ctx_builder: Option<GlobalsContextBuilder>) -> Self {
         Self {
-            inner: RuntimeInner::create().expect("Failed to create runtime"),
+            inner: RuntimeInner::create(ctx_builder.unwrap_or_default())
+                .expect("Failed to create runtime"),
         }
     }
 
