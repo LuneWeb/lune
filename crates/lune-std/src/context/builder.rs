@@ -1,11 +1,11 @@
 use mlua::Result as LuaResult;
 use std::{borrow::Cow, collections::HashMap, path::PathBuf};
 
-use super::{GlobalsContext, LuneModule, LuneModuleCreator};
+use super::{GlobalsContext, LuauLibrary, LuauLibraryCreator};
 
 #[derive(Default)]
 pub struct GlobalsContextBuilder {
-    modules: Vec<LuneModule>,
+    libraries: Vec<LuauLibrary>,
     scripts: HashMap<PathBuf, Cow<'static, [u8]>>,
 }
 
@@ -36,17 +36,17 @@ impl GlobalsContextBuilder {
     pub fn with_alias(
         &mut self,
         name: &'static str,
-        handler: fn(&mut HashMap<&str, LuneModuleCreator>) -> LuaResult<()>,
+        handler: fn(&mut HashMap<&str, LuauLibraryCreator>) -> LuaResult<()>,
     ) -> LuaResult<()> {
         let mut modules = HashMap::new();
         handler(&mut modules)?;
 
-        let alias = LuneModule {
+        let alias = LuauLibrary {
             alias: name,
             children: modules,
         };
 
-        self.modules.push(alias);
+        self.libraries.push(alias);
 
         Ok(())
     }
@@ -81,7 +81,7 @@ impl GlobalsContextBuilder {
     #[must_use]
     pub fn build(self) -> GlobalsContext {
         GlobalsContext {
-            modules: self.modules,
+            libraries: self.libraries,
             scripts: self.scripts,
         }
     }

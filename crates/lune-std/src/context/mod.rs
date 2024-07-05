@@ -8,16 +8,19 @@ mod builder;
     Use this enum to determine what type of lua object a module will return
 */
 #[derive(Clone, Debug)]
-pub enum LuneModuleCreator {
+pub enum LuauLibraryCreator {
     LuaTable(fn(&Lua) -> LuaResult<LuaTable>),
     LuaValue(fn(&Lua) -> LuaResult<LuaValue>),
 }
 
-impl<'lua> IntoLua<'lua> for LuneModuleCreator {
+// Keeping this for backward compatibility
+pub use LuauLibraryCreator as LuneModuleCreator;
+
+impl<'lua> IntoLua<'lua> for LuauLibraryCreator {
     fn into_lua(self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
         match self {
-            LuneModuleCreator::LuaTable(creator) => creator(lua)?.into_lua(lua),
-            LuneModuleCreator::LuaValue(creator) => creator(lua),
+            LuauLibraryCreator::LuaTable(creator) => creator(lua)?.into_lua(lua),
+            LuauLibraryCreator::LuaValue(creator) => creator(lua),
         }
     }
 }
@@ -29,8 +32,8 @@ impl From<GlobalsContextBuilder> for GlobalsContext {
 }
 
 #[derive(Default, Clone, Debug)]
-pub struct LuneModule {
-    pub children: HashMap<&'static str, LuneModuleCreator>,
+pub struct LuauLibrary {
+    pub children: HashMap<&'static str, LuauLibraryCreator>,
     pub alias: &'static str,
 }
 
@@ -41,14 +44,20 @@ pub struct LuneModule {
 */
 #[derive(Default, Clone, Debug)]
 pub struct GlobalsContext {
-    pub modules: Vec<LuneModule>,
+    pub libraries: Vec<LuauLibrary>,
     pub scripts: HashMap<PathBuf, Cow<'static, [u8]>>,
 }
 
 impl GlobalsContext {
     #[must_use]
-    pub fn get_alias(&self, s: &str) -> Option<&LuneModule> {
-        self.modules.iter().find(|x| x.alias == s)
+    pub fn get_library(&self, s: &str) -> Option<&LuauLibrary> {
+        self.get_alias(s)
+    }
+
+    #[must_use]
+    // Keeping this method for backward compatibility
+    pub fn get_alias(&self, s: &str) -> Option<&LuauLibrary> {
+        self.libraries.iter().find(|x| x.alias == s)
     }
 
     #[must_use]
