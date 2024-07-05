@@ -76,6 +76,12 @@ impl<'lua> IntoLua<'lua> for LuneModuleCreator {
     }
 }
 
+impl From<GlobalsContextBuilder> for GlobalsContext {
+    fn from(val: GlobalsContextBuilder) -> Self {
+        val.build()
+    }
+}
+
 #[derive(Default, Clone, Debug)]
 pub struct LuneModule {
     pub children: HashMap<&'static str, LuneModuleCreator>,
