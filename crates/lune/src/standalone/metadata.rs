@@ -71,7 +71,7 @@ impl Metadata {
         patched_bin.extend_from_slice(bytes);
 
         // Append the length of metadata to the end
-        let mut buffer = [0u8; 8];
+        let mut buffer = [0u8; 2];
         let length_as_bytes = postcard::to_slice(&bytes.len(), &mut buffer).unwrap();
         patched_bin.extend_from_slice(length_as_bytes);
 
@@ -89,11 +89,15 @@ impl Metadata {
     */
     pub fn from_bytes(bytes: impl AsRef<[u8]>) -> Result<Self> {
         let bytes = bytes.as_ref();
-        let Ok(length) = postcard::from_bytes::<usize>(&bytes[bytes.len() - 8..bytes.len()]) else {
+        // println!("{:?}", &bytes[bytes.len() - 8..bytes.len()]);
+
+        let Ok(length) = postcard::from_bytes::<usize>(&bytes[bytes.len() - 2..bytes.len()]) else {
             bail!("Failed to get binary length")
         };
 
-        let bytes = &bytes[0..bytes.len() - 8];
+        // println!("{length}");
+
+        let bytes = &bytes[0..bytes.len() - 2];
         let bytes = &bytes[bytes.len() - length..bytes.len()];
         let metadata = postcard::from_bytes::<Metadata>(bytes);
 
