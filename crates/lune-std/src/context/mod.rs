@@ -5,60 +5,6 @@ use std::{borrow::Cow, collections::HashMap, path::PathBuf};
 mod builder;
 
 /**
-    Will only insert the item into the hashmap if the provided feature flag is enabled
-
-    # Example
-    ```
-    context_builder.with_alias("lune", |modules| {
-        insert_feature_only_module!(modules, "fs", LuneModuleCreator::LuaTable(lune_std_fs::module));
-
-        /*
-                turns into:
-
-        #[cfg(feature = "fs")]
-        modules.insert("fs", LuneModuleCreator::LuaTable(lune_std_fs::module));
-
-        */
-
-        Ok(())
-    })?;
-    ```
-*/
-#[macro_export]
-macro_rules! insert_feature_only_module {
-    ($modules:ident, $feature:literal, $module:expr) => {
-        #[cfg(feature = $feature)]
-        $modules.insert($feature, $module);
-    };
-}
-
-/**
-    Will insert the item into the hashmap
-
-    # Example
-    ```
-    context_builder.with_alias("lune", |modules| {
-        insert_module!(modules, "fs", LuneModuleCreator::LuaTable(lune_std_fs::module));
-
-        /*
-                turns into:
-
-        modules.insert("fs", LuneModuleCreator::LuaTable(lune_std_fs::module));
-
-        */
-
-        Ok(())
-    })?;
-    ```
-*/
-#[macro_export]
-macro_rules! insert_module {
-    ($modules:ident, $feature:literal, $module:expr) => {
-        $modules.insert($feature, $module);
-    };
-}
-
-/**
     Use this enum to determine what type of lua object a module will return
 */
 #[derive(Clone, Debug)]

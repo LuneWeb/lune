@@ -3,26 +3,6 @@ use std::{borrow::Cow, collections::HashMap, path::PathBuf};
 
 use super::{GlobalsContext, LuneModule, LuneModuleCreator};
 
-/**
-    # Example
-    ```
-    // our module creator
-    let create_pixels = |lua: &Lua| -> LuaResult<LuaTable> {
-        ... // return a lua table
-    };
-
-    let builder = lune_std::context::GlobalsContextBuilder::new();
-
-    // lua: require("@<alias-name>/pixels")
-    builder.with_alias("<alias-name>", |modules| {
-        insert_module!(modules, "pixels", LuneModuleCreator::LuaTable(create_pixels));
-
-        Ok(())
-    })?;
-
-    lune_std::inject_globals(&lua, builder);
-    ```
-*/
 #[derive(Default)]
 pub struct GlobalsContextBuilder {
     modules: Vec<LuneModule>,
@@ -47,19 +27,7 @@ impl GlobalsContextBuilder {
         };
 
         builder.with_alias("<alias>", |modules| {
-            // There are multiple ways of inserting a module
-
-            // .1
             modules.insert("pixels", LuneModuleCreator::LuaTable(create_pixels));
-
-            // .2
-            // does the exact same thing as .1
-            insert_module!(modules, "pixels", LuneModuleCreator::LuaTable(create_pixels));
-
-            // .3
-            // does the exact same thing as .1
-            // but only if a feature flag with the name of "pixels" is enabled
-            insert_feature_only_module!(modules, "pixels", LuneModuleCreator::LuaTable(create_pixels));
 
             Ok(())
         })?;
