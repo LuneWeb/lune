@@ -22,6 +22,8 @@ pub static CURRENT_EXE: Lazy<PathBuf> =
     https://crates.io/crates/postcard
 */
 
+const MAGIC: &[u8; 5] = b"M8G2C";
+
 /**
     Metadata for a standalone Lune executable. Can be used to
     discover and load the bytecode contained in a standalone binary.
@@ -39,12 +41,18 @@ impl Metadata {
         Returns whether or not the currently executing Lune binary
         is a standalone binary, and if so, the bytes of the binary.
     */
-    pub async fn check_env() -> Option<Metadata> {
+    pub async fn check_env() -> Result<Option<Metadata>> {
         let contents = fs::read(CURRENT_EXE.to_path_buf())
             .await
             .unwrap_or_default();
-        let meta = Self::from_bytes(contents);
-        meta.ok()
+        if contents.ends_with(MAGIC) {
+            match Self::from_bytes(&contents[0..contents.len() - MAGIC.len()]) {
+                Ok(meta) => Ok(Some(meta)),
+                Err(err) => Err(err),
+            }
+        } else {
+            Ok(None)
+        }
     }
 
     /**
@@ -67,6 +75,9 @@ impl Metadata {
         let length_as_bytes = postcard::to_slice(&bytes.len(), &mut buffer).unwrap();
         patched_bin.extend_from_slice(length_as_bytes);
 
+        // Append the magic word to the end
+        patched_bin.extend_from_slice(MAGIC);
+
         // println!("{length_as_bytes:?}");
         // println!("{}", bytes.len());
 
@@ -82,12 +93,12 @@ impl Metadata {
             bail!("Failed to get binary length")
         };
 
-        let bytes = &bytes[0..bytes.len() - 2];
+        let bytes = &bytes[0..bytes.len() - 8];
         let bytes = &bytes[bytes.len() - length..bytes.len()];
         let metadata = postcard::from_bytes::<Metadata>(bytes);
 
         if metadata.is_err() {
-            bail!("Metadata is not attached")
+            bail!("Metadata is not attached: {}", metadata.err().unwrap())
         }
 
         Ok(metadata.unwrap())

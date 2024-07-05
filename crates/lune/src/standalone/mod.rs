@@ -16,7 +16,7 @@ use self::metadata::Metadata;
     Returns whether or not the currently executing Lune binary
     is a standalone binary, and if so, the bytes of the binary.
 */
-pub async fn check() -> Option<Metadata> {
+pub async fn check() -> Result<Option<Metadata>> {
     Metadata::check_env().await
 }
 
