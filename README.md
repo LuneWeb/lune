@@ -1,6 +1,22 @@
 <!-- markdownlint-disable MD033 -->
 <!-- markdownlint-disable MD041 -->
 
+## Changes from this fork
+
+### CLI changes
+
+> Build
+>
+> the `lune build` command can bundle multiple scripts
+>
+> example usage: "lune build path/to/script1.luau path/to/script2.luau path/to/scrpt3.luau"
+
+### Internal changes
+
+> GlobalsContext
+>
+> this struct allows you to customize the global variables that are inserted by the lune-std crate, for now these customizations are limited to adding your own standard libraries and modulescripts to the require function
+
 <img align="right" width="250" src="assets/logo/tilt_svg.svg" alt="Lune logo" />
 
 <h1 align="center">Lune</h1>
@@ -29,10 +45,6 @@ A standalone [Luau](https://luau-lang.org) runtime.
 Write and run programs, similar to runtimes for other languages such as [Node](https://nodejs.org), [Deno](https://deno.land), [Bun](https://bun.sh), or [Luvit](https://luvit.io) for vanilla Lua.
 
 Lune provides fully asynchronous APIs wherever possible, and is built in Rust 🦀 for speed, safety and correctness.
-
-## This fork
-
-This fork is supposed to make lune more customizable as a cargo crate, so it can be used in other projects such as LuneWeb
 
 ## Features
 
