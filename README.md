@@ -5,17 +5,23 @@
 
 ### CLI changes
 
-> Build
->
-> the `lune build` command can bundle multiple scripts
->
-> example usage: "lune build path/to/script1.luau path/to/script2.luau path/to/scrpt3.luau"
+$ Build
+
+the `lune build` command can bundle multiple scripts
+
+```shell
+lune build path/to/script1.luau path/to/script2.luau path/to/scrpt3.luau
+```
+
+```shell
+lune build path/to/*.luau
+```
 
 ### Internal changes
 
-> GlobalsContext
->
-> this struct allows you to customize the global variables that are inserted by the lune-std crate, for now these customizations are limited to adding your own standard libraries and modulescripts to the require function
+$ GlobalsContext
+
+this struct allows you to customize the global variables that are inserted by the lune-std crate, for now these customizations are limited to adding your own standard libraries and modulescripts to the require function
 
 <img align="right" width="250" src="assets/logo/tilt_svg.svg" alt="Lune logo" />
 
