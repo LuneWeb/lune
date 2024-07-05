@@ -19,8 +19,8 @@ async fn main() -> ExitCode {
         .with_level(true)
         .init();
 
-    if let Some(bin) = standalone::check().await {
-        return standalone::run(bin).await.unwrap();
+    if let Some(meta) = standalone::check().await {
+        return standalone::run(meta).await.unwrap();
     }
 
     #[cfg(feature = "cli")]

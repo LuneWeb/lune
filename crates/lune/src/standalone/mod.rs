@@ -16,22 +16,16 @@ use self::metadata::Metadata;
     Returns whether or not the currently executing Lune binary
     is a standalone binary, and if so, the bytes of the binary.
 */
-pub async fn check() -> Option<Vec<u8>> {
-    let (is_standalone, patched_bin) = Metadata::check_env().await;
-    if is_standalone {
-        Some(patched_bin)
-    } else {
-        None
-    }
+pub async fn check() -> Option<Metadata> {
+    Metadata::check_env().await
 }
 
 /**
     Discovers, loads and executes the bytecode contained in a standalone binary.
 */
-pub async fn run(patched_bin: impl AsRef<[u8]>) -> Result<ExitCode> {
+pub async fn run(meta: Metadata) -> Result<ExitCode> {
     // The first argument is the path to the current executable
     let args = env::args().skip(1).collect::<Vec<_>>();
-    let meta = Metadata::from_bytes(patched_bin).expect("must be a standalone binary");
 
     let mut ctx_builder = GlobalsContextBuilder::new();
     let cwd = current_dir().unwrap();

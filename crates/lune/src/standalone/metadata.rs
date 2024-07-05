@@ -39,14 +39,12 @@ impl Metadata {
         Returns whether or not the currently executing Lune binary
         is a standalone binary, and if so, the bytes of the binary.
     */
-    pub async fn check_env() -> (bool, Vec<u8>) {
+    pub async fn check_env() -> Option<Metadata> {
         let contents = fs::read(CURRENT_EXE.to_path_buf())
             .await
             .unwrap_or_default();
-        let has_metadata =
-            postcard::from_bytes::<Metadata>(&contents[contents.len() - 999..contents.len()])
-                .is_ok();
-        (has_metadata, contents)
+        let meta = Self::from_bytes(contents);
+        meta.ok()
     }
 
     /**
@@ -82,14 +80,16 @@ impl Metadata {
     */
     pub fn from_bytes(bytes: impl AsRef<[u8]>) -> Result<Self> {
         let bytes = bytes.as_ref();
-        let length = postcard::from_bytes::<usize>(&bytes[bytes.len() - 2..bytes.len()]).unwrap();
+        let Ok(length) = postcard::from_bytes::<usize>(&bytes[bytes.len() - 2..bytes.len()]) else {
+            bail!("Failed to get binary length")
+        };
 
         let bytes = &bytes[0..bytes.len() - 2];
         let bytes = &bytes[bytes.len() - length..bytes.len()];
         let metadata = postcard::from_bytes::<Metadata>(bytes);
 
         if metadata.is_err() {
-            bail!("not a standalone binary")
+            bail!("Metadata is not attached")
         }
 
         Ok(metadata.unwrap())
