@@ -70,6 +70,7 @@ impl RuntimeInner {
             }
 
             let globals_ctx = ctx_builder.build();
+            lune_std::set_global_version(lua, env!("CARGO_PKG_VERSION"));
             lune_std::inject_globals(lua, &globals_ctx)?;
 
             // Sandbox the Luau VM and make it go zooooooooom
