@@ -65,6 +65,7 @@ impl Metadata {
         let mut patched_bin = fs::read(base_exe_path).await?;
 
         // Append metadata to the end
+        // NOTE: if the 512000 limit ever becomes an issue, use the heapless crate
         let mut buffer = [0u8; 512000];
 
         let bytes = postcard::to_slice(&Self { scripts }, &mut buffer).unwrap();
