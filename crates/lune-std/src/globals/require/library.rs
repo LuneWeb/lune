@@ -1,6 +1,6 @@
 use mlua::prelude::*;
 
-use super::context::*;
+use super::context::RequireContext;
 
 pub(super) fn require<'lua, 'ctx>(
     lua: &'lua Lua,
