@@ -63,24 +63,18 @@ impl Metadata {
         scripts: Vec<LuauScript>,
     ) -> Result<Vec<u8>> {
         let mut patched_bin = fs::read(base_exe_path).await?;
+        let decompresesd_bin = postcard::to_extend(&Self { scripts }, Vec::new()).unwrap();
 
-        // Append metadata to the end
-        // NOTE: if the 512000 limit ever becomes an issue, use the heapless crate
-        let mut buffer = [0u8; 512000];
+        // Append compressed binary
+        let compressed_bin = lz4_compression::compress::compress(&decompresesd_bin);
+        let compressed_len = &compressed_bin.len();
+        patched_bin.extend(compressed_bin);
 
-        let bytes = postcard::to_slice(&Self { scripts }, &mut buffer).unwrap();
-        patched_bin.extend_from_slice(bytes);
-
-        // Append the length of metadata to the end
-        let mut buffer = [0u8; 2];
-        let length_as_bytes = postcard::to_slice(&bytes.len(), &mut buffer).unwrap();
-        patched_bin.extend_from_slice(length_as_bytes);
+        // Append length of compressed binary
+        let mut patched_bin = postcard::to_extend(compressed_len, patched_bin).unwrap();
 
         // Append the magic word to the end
         patched_bin.extend_from_slice(MAGIC);
-
-        // println!("{length_as_bytes:?}");
-        // println!("{}", bytes.len());
 
         Ok(patched_bin)
     }
@@ -90,17 +84,15 @@ impl Metadata {
     */
     pub fn from_bytes(bytes: impl AsRef<[u8]>) -> Result<Self> {
         let bytes = bytes.as_ref();
-        // println!("{:?}", &bytes[bytes.len() - 8..bytes.len()]);
 
         let Ok(length) = postcard::from_bytes::<usize>(&bytes[bytes.len() - 2..bytes.len()]) else {
             bail!("Failed to get binary length")
         };
 
-        // println!("{length}");
-
         let bytes = &bytes[0..bytes.len() - 2];
-        let bytes = &bytes[bytes.len() - length..bytes.len()];
-        let metadata = postcard::from_bytes::<Metadata>(bytes);
+        let compressed_bin = &bytes[bytes.len() - length..bytes.len()];
+        let decompressed_bin = lz4_compression::decompress::decompress(compressed_bin).unwrap();
+        let metadata = postcard::from_bytes::<Metadata>(&decompressed_bin);
 
         if metadata.is_err() {
             bail!("Metadata is not attached: {}", metadata.err().unwrap())
