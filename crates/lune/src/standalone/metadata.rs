@@ -85,11 +85,14 @@ impl Metadata {
     pub fn from_bytes(bytes: impl AsRef<[u8]>) -> Result<Self> {
         let bytes = bytes.as_ref();
 
-        let Ok(length) = postcard::from_bytes::<usize>(&bytes[bytes.len() - 2..bytes.len()]) else {
+        let length_bytes_len = if bytes[bytes.len() - 2] == 0 { 1 } else { 2 };
+        let length_bytes = &bytes[bytes.len() - length_bytes_len..bytes.len()];
+
+        let Ok(length) = postcard::from_bytes::<usize>(length_bytes) else {
             bail!("Failed to get binary length")
         };
 
-        let bytes = &bytes[0..bytes.len() - 2];
+        let bytes = &bytes[0..bytes.len() - length_bytes_len];
         let compressed_bin = &bytes[bytes.len() - length..bytes.len()];
         let decompressed_bin = lz4_compression::decompress::decompress(compressed_bin).unwrap();
         let metadata = postcard::from_bytes::<Metadata>(&decompressed_bin);
