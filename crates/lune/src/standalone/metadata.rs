@@ -85,7 +85,12 @@ impl Metadata {
     pub fn from_bytes(bytes: impl AsRef<[u8]>) -> Result<Self> {
         let bytes = bytes.as_ref();
 
-        let length_bytes_len = if bytes[bytes.len() - 2] == 0 { 1 } else { 2 };
+        let length_bytes_len = match bytes.get(bytes.len().saturating_sub(3)..) {
+            Some([0, 0, _]) => 1,
+            Some([0, _, _]) => 2,
+            _ => 3,
+        };
+
         let length_bytes = &bytes[bytes.len() - length_bytes_len..bytes.len()];
 
         let Ok(length) = postcard::from_bytes::<usize>(length_bytes) else {
