@@ -1,5 +1,6 @@
 use std::{
     env::{self, current_dir},
+    path::PathBuf,
     process::ExitCode,
 };
 
@@ -20,6 +21,29 @@ pub async fn check() -> Result<Option<Metadata>> {
     Metadata::check_env().await
 }
 
+fn resolve_path(path: PathBuf) -> PathBuf {
+    let mut result = PathBuf::new();
+
+    for component in path.components() {
+        use std::path::Component;
+
+        match component {
+            Component::ParentDir => {
+                result.pop();
+            }
+            Component::Normal(part) => {
+                result.push(part);
+            }
+            Component::RootDir => {
+                result.push(component.as_os_str());
+            }
+            _ => {}
+        }
+    }
+
+    result
+}
+
 /**
     Discovers, loads and executes the bytecode contained in a standalone binary.
 */
@@ -31,7 +55,8 @@ pub async fn run(meta: Metadata) -> Result<ExitCode> {
     let cwd = current_dir().unwrap();
 
     for script in &meta.scripts {
-        ctx_builder.with_script(cwd.join(script.0.clone()), script.1.clone().into());
+        let path = resolve_path(cwd.join(script.0.clone()));
+        ctx_builder.with_script(path, script.1.clone().into());
     }
 
     if meta.scripts.is_empty() {
@@ -39,13 +64,13 @@ pub async fn run(meta: Metadata) -> Result<ExitCode> {
     }
 
     let init = &meta.scripts[0];
+    let path = resolve_path(cwd.join(init.0.clone()))
+        .to_string_lossy()
+        .to_string();
 
     let result = Runtime::new(Some(ctx_builder))
         .with_args(args)
-        .run(
-            cwd.join(init.0.clone()).to_string_lossy().to_string(),
-            init.1.clone(),
-        )
+        .run(path, init.1.clone())
         .await;
 
     Ok(match result {

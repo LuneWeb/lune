@@ -66,6 +66,8 @@ impl BuildCommand {
             let source_code = fs::read(input).await.context("failed to read input file")?;
             let bytecode = compiler.compile(source_code);
 
+            println!("{:?}", input.to_string_lossy().to_string());
+
             scripts.push(LuauScript(input.to_string_lossy().to_string(), bytecode));
         }
 
