@@ -13,6 +13,8 @@ the `lune build` command can bundle multiple scripts
 lune build path/to/script1.luau path/to/script2.luau path/to/scrpt3.luau
 ```
 
+the bundler doesn't bundle `.luaurc` yet so it's not gonna work with custom aliases.
+
 ```shell
 lune build path/to/*.luau
 ```
