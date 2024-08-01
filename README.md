@@ -1,6 +1,10 @@
 <!-- markdownlint-disable MD033 -->
 <!-- markdownlint-disable MD041 -->
 
+## Archival
+
+before luneweb 0.3 this fork was being used for bundling since you can fake require paths using the GlobalsContext struct, but maintaining a Fork is just not very easy to do, so it's decided that LuneWeb is gonna do it's own implementation of require once there is need for bundling again.
+
 ## Changes from this fork
 
 ### CLI changes
